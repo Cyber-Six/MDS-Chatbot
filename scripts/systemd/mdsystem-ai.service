@@ -1,0 +1,54 @@
+# systemd Service File for MDSystem AI LLaMA Server
+#
+# Runs the llama.cpp inference server on port 8080.
+# Provides AI responses to mds-ai-chatbot.service via HTTP on localhost:8080.
+# This service manages ONLY the AI model — the chatbot is managed by mds-ai-chatbot.service.
+
+[Unit]
+Description=MDSystem AI LLaMA Server
+Documentation=https://github.com/Cyber-Six/MDS-AI-Chatbot
+After=network.target
+Before=mds-ai-chatbot.service
+
+[Service]
+Type=simple
+User=mdsystem
+Group=mdsystem
+WorkingDirectory=/home/mdsystem/AI/llama.cpp
+
+# Wait for system to stabilize before loading the model
+ExecStartPre=/bin/sleep 30
+
+# Start llama-server — listens on localhost:8080 for inference requests from mds-ai-chatbot
+ExecStart=/home/mdsystem/AI/llama.cpp/build/bin/llama-server \
+  -m /home/mdsystem/AI/llama.cpp/models/Phi-3-mini-4k-instruct-Q4_K_M.gguf \
+  -c 4096 \
+  -t 4 \
+  --batch-size 256 \
+  --ubatch-size 256 \
+  --parallel 2 \
+  --host 0.0.0.0 \
+  --port 8080 \
+  --mlock
+
+# Restart policy
+Restart=on-failure
+RestartSec=10s
+
+# Resource limits (AI model needs significant RAM)
+MemoryMax=7G
+CPUQuota=99%
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=mdsystem-ai
+
+# Security hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+
+[Install]
+WantedBy=multi-user.target

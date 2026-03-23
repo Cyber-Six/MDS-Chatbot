@@ -1,0 +1,45 @@
+# systemd Service File for MDS-AI-Chatbot Microservice
+#
+# Runs the Node.js chatbot microservice on port 3002.
+# Proxied by the main MDSystem backend (www/www2) via /econsultation/chat/*.
+# Requires mdsystem-ai.service (llama-server) to be running for AI responses.
+# Requires postgresql.service for session and conversation storage.
+
+# replace User=mdsystem to your user
+ 
+[Unit]
+Description=MDS-AI-Chatbot Microservice (Node.js)
+Documentation=https://github.com/Cyber-Six/MDS-AI-Chatbot
+After=network.target postgresql.service mdsystem-ai.service
+Wants=postgresql.service mdsystem-ai.service
+
+[Service]
+Type=simple
+User=mdsystem
+Group=mdsystem
+WorkingDirectory=/home/mdsystem/MDS-AI-Chatbot
+
+# Load environment variables from .env file
+EnvironmentFile=/home/mdsystem/MDS-AI-Chatbot/.env
+
+# Start the Node.js chatbot server
+ExecStart=/home/mdsystem/.nvm/versions/node/v24.13.0/bin/node server.js
+
+# Restart policy
+Restart=on-failure
+RestartSec=10s
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=mds-ai-chatbot
+
+# Security hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/home/mdsystem/MDS-AI-Chatbot/logs
+
+[Install]
+WantedBy=multi-user.target
